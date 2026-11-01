@@ -23,7 +23,7 @@ venv:
 	$(PIP) install --upgrade pip
 
 install: venv
-	$(PIP) install -e "backend[dev]"
+	$(PIP) install -r backend/requirements-dev.txt
 	$(MAKE) install-console
 
 migrate:

@@ -1,0 +1,12 @@
+# ---------------------------------------------------------------------------
+# Kora — dépendances de développement (tests, lint)
+#
+#   pip install -r backend/requirements-dev.txt
+#
+# Inclut toutes les dépendances d'exécution.
+# ---------------------------------------------------------------------------
+-r requirements.txt
+
+pytest==9.2.0
+pytest-django==4.14.0
+ruff==0.17.3

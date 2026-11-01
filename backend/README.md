@@ -11,7 +11,7 @@ aucune logique dans les vues, tout passe par un service.
 make install     # venv + dépendances (Django, DRF, JWT, Celery) + console
 make migrate     # schéma SQLite (ou Postgres via .env)
 make demo        # jeu de démonstration : tenant → site → routeur → enrôlement → sonde
-make test        # suite de tests (71 + 1 test routeur réel optionnel)
+make test        # suite de tests (79 + 1 test routeur réel optionnel)
 make run         # API   → http://localhost:8001
 make console     # UI    → http://localhost:5173
 ```
@@ -31,6 +31,26 @@ Détails : [`docs/17-environnement-windows.md`](../docs/17-environnement-windows
 
 Le fichier `.env` (racine ou `backend/`) est **chargé automatiquement** au démarrage ;
 les variables du shell restent prioritaires.
+
+## Dépendances
+
+| Fichier | Contenu | Usage |
+|---|---|---|
+| `requirements.txt` | exécution, **versions figées** (Django, DRF + JWT, Celery, Redis, cryptography) | serveur, image Docker |
+| `requirements-dev.txt` | `-r requirements.txt` + pytest, pytest-django, ruff | poste de développement |
+| `pyproject.toml` | source de vérité (contraintes larges) + configuration pytest/ruff | publication, outillage |
+
+```bash
+# Installation reproductible (sans installation du paquet)
+pip install -r backend/requirements-dev.txt
+
+# ou, si vous préférez le paquet éditable
+pip install -e "backend[dev]"
+```
+
+Un test (`tests/test_dependencies.py`) vérifie que **tout module importé est déclaré** et que
+`pyproject.toml` / `requirements*.txt` restent alignés : un oubli de dépendance casse la CI,
+plus la production.
 
 ## Organisation
 
