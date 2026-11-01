@@ -5,14 +5,32 @@ aucune logique dans les vues, tout passe par un service.
 
 ## Démarrage
 
+**Linux / macOS / WSL / Git Bash**
+
 ```bash
 make install     # venv + dépendances (Django, DRF, JWT, Celery) + console
 make migrate     # schéma SQLite (ou Postgres via .env)
 make demo        # jeu de démonstration : tenant → site → routeur → enrôlement → sonde
-make test        # suite de tests (68 + 1 test routeur réel optionnel)
+make test        # suite de tests (71 + 1 test routeur réel optionnel)
 make run         # API   → http://localhost:8001
 make console     # UI    → http://localhost:5173
 ```
+
+**Windows (PowerShell)** — aucun `make` nécessaire
+
+```powershell
+.\dev.ps1 install
+.\dev.ps1 migrate
+.\dev.ps1 demo
+.\dev.ps1 test
+.\dev.ps1 run        # API  → http://localhost:8001
+.\dev.ps1 console    # UI   → http://localhost:5173
+```
+
+Détails : [`docs/17-environnement-windows.md`](../docs/17-environnement-windows.md).
+
+Le fichier `.env` (racine ou `backend/`) est **chargé automatiquement** au démarrage ;
+les variables du shell restent prioritaires.
 
 ## Organisation
 
@@ -51,13 +69,17 @@ chaque requête. Durées : accès 15 min, refresh 7 jours (`JWT_ACCESS_MINUTES`,
 ## Routeur réel (VM VirtualBox, CHR, hAP)
 
 ```bash
-# Test direct, sans base de données
+# Linux / macOS
 python manage.py probe_router --host 192.168.56.101 --username kora --password '…'
-python manage.py probe_router --host 192.168.56.101 --username kora --password '…' --http --port 80
+MIKROTIK_LIVE_HOST=192.168.56.101 MIKROTIK_LIVE_USER=kora MIKROTIK_LIVE_PASSWORD='…' pytest -m live
+```
 
-# Tests automatisés contre ce routeur
-MIKROTIK_LIVE_HOST=192.168.56.101 MIKROTIK_LIVE_USER=kora \
-MIKROTIK_LIVE_PASSWORD='…' pytest -m live
+```powershell
+# Windows
+cd backend
+..\.venv\Scripts\python manage.py probe_router --host 192.168.56.101 --username kora --password "…"
+$env:MIKROTIK_LIVE_HOST = "192.168.56.101"
+..\.venv\Scripts\python -m pytest -m live -v
 ```
 
 Guide détaillé (réseau VirtualBox, configuration RouterOS, dépannage) :

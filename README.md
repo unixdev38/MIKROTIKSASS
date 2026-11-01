@@ -8,12 +8,23 @@ mobile money, supervision — construit avec **Django** + **React**.
 > données, API, frontend, sécurité, infra, roadmap, ADR, maquettes) **et** le début du backend Django :
 > multi-tenant, rôles, parc de routeurs, enrôlement et sonde.
 >
-> ```bash
-> make install && make migrate && make demo   # données de démonstration (routeur simulé)
-> make run                                     # API   → http://localhost:8001
-> make console                                 # UI    → http://localhost:5173
-> make test                                    # 68 tests + 1 test « vrai routeur » optionnel
+> > **Windows (PowerShell)** — aucun `make` requis :
+>
+> ```powershell
+> .\dev.ps1 install && .\dev.ps1 migrate && .\dev.ps1 demo
+> .\dev.ps1 run        # API → http://localhost:8001
+> .\dev.ps1 console    # UI  → http://localhost:5173
+> .\dev.ps1 test       # 71 tests + 1 test « vrai routeur » optionnel
 > ```
+>
+> **Linux / macOS / WSL / Git Bash** :
+>
+> ```bash
+> make install && make migrate && make demo
+> make run && make console && make test
+> ```
+>
+> Guide complet Windows : [**docs/17 — Environnement Windows**](docs/17-environnement-windows.md).
 
 ## Ce qui fonctionne déjà
 
@@ -85,6 +96,7 @@ flowchart LR
 | 14 | [**Conventions de code**](docs/14-conventions-de-code.md) | Couches, tailles maximales, docstrings, héritage, checklist de revue | 12 min |
 | 15 | [**Routeur de test VirtualBox**](docs/15-routeur-de-test-virtualbox.md) | Brancher un RouterOS x86 local : réseau, API REST, CLI, console, dépannage | 12 min |
 | 16 | [**Vouchers hotspot**](docs/16-vouchers-hotspot.md) | Forfaits, génération, envoi au routeur, quotas, export, limites assumées | 14 min |
+| 17 | [**Environnement Windows**](docs/17-environnement-windows.md) | PowerShell, `dev.ps1`, `.env`, routeur VirtualBox, pièges courants | 10 min |
 
 **Maquettes cliquables** : `design/dist/index.html` — prototype HTML/CSS sans dépendance
 (13 écrans : console, caisse, enrôlement, portail captif, design system).
