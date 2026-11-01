@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthProvider.jsx';
 const NAV = [
   { to: '/', label: 'Tableau de bord', end: true },
   { to: '/devices', label: 'Routeurs' },
+  { to: '/vouchers', label: 'Vouchers' },
   { to: '/settings', label: 'Réglages' },
 ];
 

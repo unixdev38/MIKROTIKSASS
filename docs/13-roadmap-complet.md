@@ -9,7 +9,9 @@
 > Fonctionne de bout en bout : espace → site → routeur → enrôlement (script + secrets chiffrés)
 > → sonde → statut « en ligne » ; **authentification JWT** ; **console React** branchée sur
 > l'API ; **connexion à un routeur RouterOS réel** (API REST, HTTP/HTTPS, port libre).
-> Prochaine marche : provisioning réel des vouchers (P4).
+> **Ajout 2026-11-01** : P4 entamé — forfaits, lots de vouchers, envoi au routeur (REST),
+> synchronisation des quotas, export CSV et écran console livrés et testés.
+> Prochaine marche : PDF/QR des coupons (T42) puis RADIUS (P5).
 > Chaque phase se termine par une **porte de sortie** (critères mesurables). On ne passe pas à la
 > suivante sans l'avoir franchie.
 
@@ -119,7 +121,7 @@ d'un autre (liste + détail + action). CI verte et bloquante.
 | T36 | Enrôlement : génération du script + secret à usage unique + WireGuard | Idempotent, 15 min max | ⬜ |
 | T37 | Heartbeat routeur (`/tool fetch`) + endpoint signé | Détection online/offline | ⬜ |
 | T38 | `ProvisioningTask` + worker Celery + réconciliation | Rejouable, états | ◐ (worker de sonde ; provisioning en P4) |
-| T39 | Fiche routeur (React) branchée sur l'API réelle | Onglets vue d'ensemble | ⬜ |
+| T39 | Fiche routeur (React) branchée sur l'API réelle | Onglets vue d'ensemble | ✅ |
 
 **Porte de sortie P3** : un routeur physique est enrôlé **en moins de 15 minutes**, apparaît en ligne
 dans la console, remonte version/CPU, et le rejoue sans créer de doublon.
@@ -130,13 +132,13 @@ dans la console, remonte version/CPU, et le rejoue sans créer de doublon.
 
 | # | Tâche | Détail | État |
 |---|---|---|---|
-| T40 | `catalog` : Plan (prix, durée, quota, débit) | Validation métier stricte | ⬜ |
-| T41 | `vouchers` : Lot, code anti-ambigu (sans I/O/0/1), statuts | Unicité par tenant | ⬜ |
+| T40 | `catalog` : Plan (prix, durée, quota, débit) | Validation métier stricte | ✅ |
+| T41 | `vouchers` : Lot, code anti-ambigu (sans I/O/0/1), statuts | Unicité par tenant | ✅ |
 | T42 | Génération PDF + QR (WeasyPrint), 1 à 500 coupons | < 30 s | ⬜ |
-| T43 | Import/export CSV | Idempotent, rapport d'erreurs | ⬜ |
-| T44 | Provisioning des profils et des utilisateurs hotspot | `upsert` + marquage `saas:` | ⬜ |
-| T45 | Écran vouchers + aperçu du coupon | React | ⬜ |
-| T46 | Réconciliation quotidienne (base ↔ routeur) | Rapport d'écarts | ⬜ |
+| T43 | Import/export CSV | Idempotent, rapport d'erreurs | ◐ (export CSV livré, import à venir) |
+| T44 | Provisioning des profils et des utilisateurs hotspot | `upsert` + marquage `kora:` | ✅ |
+| T45 | Écran vouchers + aperçu du coupon | React | ◐ (écran livré, aperçu imprimable à venir) |
+| T46 | Réconciliation quotidienne (base ↔ routeur) | Rapport d'écarts | ◐ (écarts détectés par `sync`, correction auto à faire) |
 
 **Porte de sortie P4** : 500 vouchers générés puis visibles sur un hAP ac², imprimables, et un écart
 volontaire (suppression manuelle sur le routeur) est détecté puis corrigé automatiquement.

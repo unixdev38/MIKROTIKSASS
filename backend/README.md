@@ -9,7 +9,7 @@ aucune logique dans les vues, tout passe par un service.
 make install     # venv + dépendances (Django, DRF, JWT, Celery) + console
 make migrate     # schéma SQLite (ou Postgres via .env)
 make demo        # jeu de démonstration : tenant → site → routeur → enrôlement → sonde
-make test        # suite de tests (42 + 1 test routeur réel optionnel)
+make test        # suite de tests (68 + 1 test routeur réel optionnel)
 make run         # API   → http://localhost:8001
 make console     # UI    → http://localhost:5173
 ```
@@ -24,6 +24,7 @@ apps/tenants/      espaces de travail
 apps/accounts/     utilisateurs, appartenances, rôles
 apps/network/      sites, routeurs, identifiants, enrôlement, sondes, workers
 apps/mikrotik/     connecteur RouterOS : schémas, backends (fake/rest/binaire), service
+apps/hotspot/      forfaits, lots de vouchers, provisioning RouterOS, quotas, export CSV
 apps/api/          sérialiseurs, vues HTTP (fines), authentification JWT
 tests/             tests d'isolation, d'enrôlement, de connecteur, d'API
 ```
@@ -74,6 +75,7 @@ Guide détaillé (réseau VirtualBox, configuration RouterOS, dépannage) :
 | Authentification JWT (rotation + révocation) | ✅ |
 | Routeur RouterOS 7 réel (REST, HTTP/HTTPS, port libre) | ✅ |
 | Console React branchée sur l'API | ✅ |
+| Forfaits + lots de vouchers + envoi routeur + sync quotas + CSV | ✅ |
 | Backend binaire (8729) | ⬜ P3 |
 | Vouchers, RADIUS, paiements | ⬜ P4–P6 |
 

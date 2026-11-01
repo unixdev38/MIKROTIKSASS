@@ -17,6 +17,7 @@ from apps.mikrotik.services import MikroTikService
 from apps.network.enrollment import EnrollmentService
 from apps.network.models import Device, DeviceCredential, DeviceStatus, DeviceTransport, Site
 from apps.network.schemas import DeviceSnapshot, EnrollmentBundle
+from apps.network.site_services import SiteService  # noqa: F401 - réexport public
 from apps.network.snapshots import build_snapshot
 from core.crypto import SecretCipher
 from core.exceptions import ConflictError, DomainValidationError
@@ -24,48 +25,6 @@ from core.services import BaseService
 
 if TYPE_CHECKING:  # pragma: no cover - uniquement pour les types
     from apps.accounts.models import User
-
-
-class SiteService(BaseService[Site]):
-    """Création et mise à jour des sites.
-
-    Args:
-        actor: Utilisateur à l'origine de l'action.
-        actor_role: Rôle de cet utilisateur dans l'espace courant.
-    """
-
-    def __init__(self, actor: User | None = None, *, actor_role: str | None = None) -> None:
-        super().__init__(actor)
-        self.actor_role = actor_role
-
-    def register(self, *, name: str, code: str, city: str = "") -> Site:
-        """Crée un site dans l'espace courant.
-
-        Args:
-            name: Nom affiché du site.
-            code: Code court unique dans l'espace.
-            city: Ville (facultative).
-
-        Returns:
-            Le site créé.
-
-        Raises:
-            PermissionDeniedError: Si l'acteur n'a pas le rôle technicien.
-            DomainValidationError: Si le nom ou le code est vide.
-            ConflictError: Si le code est déjà utilisé dans cet espace.
-        """
-        self.assert_role(self.actor_role, "technician")
-
-        clean_name = (name or "").strip()
-        clean_code = (code or "").strip().upper()
-        if not clean_name:
-            raise DomainValidationError("Le nom du site est obligatoire.", code="site_name_required")
-        if not clean_code:
-            raise DomainValidationError("Le code du site est obligatoire.", code="site_code_required")
-        if Site.objects.filter(code=clean_code).exists():
-            raise ConflictError(f"Le code « {clean_code} » existe déjà.", code="site_code_taken")
-
-        return Site.objects.create(name=clean_name, code=clean_code, city=city.strip())
 
 
 class DeviceService(BaseService[Device]):
@@ -177,12 +136,14 @@ class DeviceService(BaseService[Device]):
         port: int | None = None,
         use_tls: bool | None = None,
         transport: str = DeviceTransport.REST,
+        simulated: bool | None = None,
     ) -> Device:
         """Renseigne les identifiants réels d'un routeur déjà déployé.
 
         Utile pour un routeur qui existe déjà (par exemple un CHR x86 dans une machine
         virtuelle) : on ne génère pas de secrets, on range ceux de l'administrateur,
-        chiffrés. Le routeur est alors utilisé en réel (``is_simulated`` passe à faux).
+        chiffrés. Le mode simulation n'est **pas** modifié implicitement : il est piloté
+        par ``simulated`` (``None`` = inchangé).
 
         Args:
             device: Routeur à configurer.
@@ -191,6 +152,7 @@ class DeviceService(BaseService[Device]):
             port: Port du service (``None`` conserve la valeur du routeur).
             use_tls: ``True`` pour HTTPS, ``False`` pour HTTP (``None`` : inchangé).
             transport: ``rest`` (routeur 7.x) ou ``binary`` (repli).
+            simulated: Force le mode simulation ; ``None`` conserve le réglage du routeur.
 
         Returns:
             Le routeur mis à jour.
@@ -221,7 +183,8 @@ class DeviceService(BaseService[Device]):
             record.rotated_at = timezone.now()
             record.save()
 
-            device.is_simulated = False
+            if simulated is not None:
+                device.is_simulated = simulated
             device.transport = transport
             if port is not None:
                 device.management_port = port

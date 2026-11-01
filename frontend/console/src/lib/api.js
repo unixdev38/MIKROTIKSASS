@@ -161,6 +161,35 @@ export const api = {
 };
 
 /**
+ * Télécharge un fichier protégé (export CSV) et déclenche l'enregistrement.
+ *
+ * @param {string} path Chemin relatif à `/api/v1`.
+ * @param {string} [fallbackName] Nom de fichier par défaut.
+ * @returns {Promise<void>}
+ * @throws {ApiError} Si le serveur refuse la requête.
+ */
+export async function downloadFile(path, fallbackName = 'export.csv') {
+  const response = await fetch(`/api/v1${path}`, {
+    headers: {
+      Authorization: `Bearer ${session.access}`,
+      ...(session.tenant ? { 'X-Tenant-Slug': session.tenant } : {}),
+    },
+  });
+  if (!response.ok) {
+    throw new ApiError(`Export impossible (${response.status})`, { status: response.status });
+  }
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = /filename="?([^";]+)"?/.exec(disposition);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = match ? match[1] : fallbackName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Normalise une liste paginée DRF.
  *
  * @param {any} data Réponse de liste (`{count, results}` ou tableau).

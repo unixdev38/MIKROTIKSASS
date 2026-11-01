@@ -27,6 +27,7 @@ npm run build   # vérification de production (dist/)
 | `#/` | indicateurs du parc, derniers routeurs |
 | `#/devices` | liste, ajout d'un routeur (et de son site) |
 | `#/devices/:id` | fiche : état, santé, interfaces, sonde, enrôlement, identifiants |
+| `#/vouchers` | forfaits, génération de lots, envoi routeur, sync, export CSV, codes |
 | `#/settings` | session, espaces, aide « routeur VirtualBox » |
 
 Compte de démonstration : `demo@kora.bf` / `demo-mot-de-passe-2026` (`make demo`).

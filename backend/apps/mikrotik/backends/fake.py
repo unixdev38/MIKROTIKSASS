@@ -8,8 +8,23 @@ from __future__ import annotations
 import hashlib
 
 from apps.mikrotik.backends.base import BaseBackend
-from apps.mikrotik.schemas import InterfaceState, SystemInfo
+from apps.mikrotik.schemas import HotspotUserState, InterfaceState, SystemInfo
 from core.exceptions import ExternalServiceError
+
+#: Utilisateurs hotspot simulés, conservés entre deux instances (clé = hôte).
+_FAKE_HOTSPOT_USERS: dict[str, dict[str, dict[str, str]]] = {}
+
+
+def reset_fake_router_state(host: str | None = None) -> None:
+    """Efface les utilisateurs simulés (tests, démonstration, remise à zéro).
+
+    Args:
+        host: Hôte à oublier, ou ``None`` pour tout effacer.
+    """
+    if host is None:
+        _FAKE_HOTSPOT_USERS.clear()
+    else:
+        _FAKE_HOTSPOT_USERS.pop(host, None)
 
 
 class FakeBackend(BaseBackend):
@@ -77,4 +92,74 @@ class FakeBackend(BaseBackend):
             InterfaceState("bridge-hotspot", "bridge", True, False, 31_200_000_000, 4_100_000_000),
             InterfaceState("wlan1", "wlan", True, False, 12_800_000_000, 3_300_000_000),
             InterfaceState("ether5", "ether", False, False, 0, 0),
+        ]
+
+    def upsert_hotspot_user(
+        self,
+        *,
+        name: str,
+        password: str,
+        limit_uptime: str = "",
+        limit_bytes_total: int = 0,
+        rate_limit: str = "",
+        comment: str = "",
+    ) -> None:
+        """Enregistre un utilisateur hotspot en mémoire.
+
+        Args:
+            name: Nom d'utilisateur.
+            password: Mot de passe (conservé pour permettre une relecture).
+            limit_uptime: Durée maximale.
+            limit_bytes_total: Volume maximal en octets.
+            rate_limit: Limite de débit.
+            comment: Commentaire libre.
+
+        Raises:
+            ExternalServiceError: Si le backend a été créé en mode échec.
+        """
+        if self._fail_with:
+            raise ExternalServiceError(self._fail_with, code="router_unreachable")
+        _FAKE_HOTSPOT_USERS.setdefault(self.host, {})[name] = {
+            "password": password,
+            "limit-uptime": limit_uptime,
+            "limit-bytes-total": str(limit_bytes_total),
+            "rate-limit": rate_limit,
+            "comment": comment,
+        }
+
+    def delete_hotspot_user(self, name: str) -> None:
+        """Supprime un utilisateur hotspot simulé.
+
+        Args:
+            name: Nom d'utilisateur.
+
+        Raises:
+            ExternalServiceError: Si le backend a été créé en mode échec.
+        """
+        if self._fail_with:
+            raise ExternalServiceError(self._fail_with, code="router_unreachable")
+        _FAKE_HOTSPOT_USERS.get(self.host, {}).pop(name, None)
+
+    def fetch_hotspot_users(self) -> list[HotspotUserState]:
+        """Liste les utilisateurs simulés avec des compteurs plausibles.
+
+        Returns:
+            Les utilisateurs enregistrés, du plus ancien au plus récent.
+
+        Raises:
+            ExternalServiceError: Si le backend a été créé en mode échec.
+        """
+        if self._fail_with:
+            raise ExternalServiceError(self._fail_with, code="router_unreachable")
+        users = _FAKE_HOTSPOT_USERS.get(self.host, {})
+        return [
+            HotspotUserState(
+                name=name,
+                bytes_in=18 * 1024 * 1024 + index * 1024 * 1024,
+                bytes_out=3 * 1024 * 1024,
+                uptime_seconds=900,
+                is_active=True,
+                comment=payload.get("comment", ""),
+            )
+            for index, (name, payload) in enumerate(users.items())
         ]

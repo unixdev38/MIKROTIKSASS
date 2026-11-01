@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView  # noqa: F401 - type des vues publiques
 
 from apps.accounts.selectors import MembershipSelector
+from apps.api.mixins import ActorMixin
 from apps.api.serializers import (
     DeviceCreateSerializer,
     DeviceCredentialsSerializer,
@@ -26,40 +27,7 @@ from core.api.mixins import TenantAPIView
 from core.api.views import BaseModelViewSet
 
 
-class _TenantScopedMixin:
-    """Fournit l'acteur et son rôle à partir de la requête.
-
-    Ce mixin n'apporte aucune logique métier : il ne fait que lire le contexte posé
-    par ``core.tenancy.TenantMiddleware``.
-    """
-
-    @staticmethod
-    def actor_of(request: Request) -> object:
-        """Retourne l'utilisateur de la requête.
-
-        Args:
-            request: Requête DRF authentifiée.
-
-        Returns:
-            L'utilisateur courant.
-        """
-        return request.user
-
-    @staticmethod
-    def role_of(request: Request) -> str | None:
-        """Retourne le rôle de l'utilisateur dans l'espace courant.
-
-        Args:
-            request: Requête DRF authentifiée.
-
-        Returns:
-            Le rôle (``owner``, ``technician``…), ou ``None`` si aucun espace.
-        """
-        membership = getattr(request, "membership", None)
-        return membership.role if membership else None
-
-
-class SiteViewSet(_TenantScopedMixin, BaseModelViewSet):
+class SiteViewSet(ActorMixin, BaseModelViewSet):
     """Sites de l'espace courant."""
 
     serializer_class = SiteSerializer
@@ -90,7 +58,7 @@ class SiteViewSet(_TenantScopedMixin, BaseModelViewSet):
         return Response(SiteSerializer(site).data, status=201)
 
 
-class DeviceViewSet(_TenantScopedMixin, BaseModelViewSet):
+class DeviceViewSet(ActorMixin, BaseModelViewSet):
     """Routeurs de l'espace courant."""
 
     serializer_class = DeviceSerializer
@@ -199,7 +167,7 @@ class DeviceViewSet(_TenantScopedMixin, BaseModelViewSet):
         )
 
 
-class MeView(_TenantScopedMixin, TenantAPIView):
+class MeView(ActorMixin, TenantAPIView):
     """Profil de l'utilisateur connecté et espaces accessibles."""
 
     permission_classes = [IsAuthenticated]

@@ -5,11 +5,15 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.api.auth import LogoutView, TenantTokenObtainPairView, TenantTokenRefreshView
+from apps.api.hotspot_views import PlanViewSet, VoucherBatchViewSet, VoucherViewSet
 from apps.api.views import DeviceViewSet, MeView, SiteViewSet
 
 router = DefaultRouter()
 router.register("sites", SiteViewSet, basename="site")
 router.register("devices", DeviceViewSet, basename="device")
+router.register("plans", PlanViewSet, basename="plan")
+router.register("voucher-batches", VoucherBatchViewSet, basename="voucher-batch")
+router.register("vouchers", VoucherViewSet, basename="voucher")
 
 urlpatterns = [
     path("auth/token/", TenantTokenObtainPairView.as_view(), name="token-obtain"),

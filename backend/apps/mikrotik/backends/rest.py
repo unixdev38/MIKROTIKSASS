@@ -1,5 +1,9 @@
 """Backend REST (RouterOS >= 7.1, service ``www-ssl``).
 
+Les lectures système et interface vivent ici ; les opérations hotspot sont fournies par
+``HotspotRestMixin`` (``apps.mikrotik.backends.rest_hotspot``), ce qui garde chaque
+fichier sous la limite de 300 lignes.
+
 Implémentation volontairement minimale et sans dépendance externe : la bibliothèque
 standard suffit pour un GET JSON authentifié en Basic. Les écritures (provisioning)
 seront ajoutées en P4 avec la même structure.
@@ -14,11 +18,18 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from apps.mikrotik.backends.base import BaseBackend
+from apps.mikrotik.backends.helpers import (
+    _as_bool,
+    _as_float_or_none,
+    _as_int,
+    parse_routeros_uptime,
+)
+from apps.mikrotik.backends.rest_hotspot import HotspotRestMixin
 from apps.mikrotik.schemas import InterfaceState, SystemInfo
 from core.exceptions import ExternalServiceError
 
 
-class RestBackend(BaseBackend):
+class RestBackend(HotspotRestMixin, BaseBackend):
     """Backend HTTP/JSON sur ``https://<routeur>/rest``.
 
     Args:
@@ -112,19 +123,45 @@ class RestBackend(BaseBackend):
         Raises:
             ExternalServiceError: En cas d'erreur réseau, TLS, HTTP ou de décodage.
         """
+        return self._request("GET", path)
+
+    def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
+        """Exécute une requête REST authentifiée.
+
+        Args:
+            method: Verbe HTTP (``GET``, ``PUT``, ``PATCH``, ``DELETE``).
+            path: Chemin REST (``"/rest/ip/hotspot/user"``).
+            payload: Corps JSON éventuel.
+
+        Returns:
+            La charge utile décodée (``None`` si le routeur ne renvoie rien).
+
+        Raises:
+            ExternalServiceError: En cas d'erreur réseau, TLS, HTTP ou de décodage.
+                Le message inclut le détail renvoyé par RouterOS, ce qui rend les
+                erreurs de configuration (hotspot absent, policy manquante) lisibles.
+        """
         token = base64.b64encode(f"{self.username}:{self.secret}".encode()).decode()
+        body = json.dumps(payload).encode("utf-8") if payload is not None else None
         request = Request(
             f"{self.base_url}{path}",
-            headers={"Authorization": f"Basic {token}", "Accept": "application/json"},
-            method="GET",
+            data=body,
+            headers={
+                "Authorization": f"Basic {token}",
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+            method=method,
         )
         try:
             context = self._ssl_context() if self.use_tls else None
             with urlopen(request, timeout=self.timeout, context=context) as response:
-                return json.loads(response.read().decode("utf-8"))
+                raw = response.read().decode("utf-8").strip()
+                return json.loads(raw) if raw else None
         except HTTPError as exc:
+            detail = self._error_detail(exc)
             raise ExternalServiceError(
-                f"Le routeur a refusé la requête (HTTP {exc.code}).", code="router_http_error"
+                f"Le routeur a refusé la requête (HTTP {exc.code}){detail}.", code="router_http_error"
             ) from exc
         except (URLError, TimeoutError) as exc:
             raise ExternalServiceError(
@@ -134,6 +171,29 @@ class RestBackend(BaseBackend):
             raise ExternalServiceError(
                 "Réponse du routeur illisible (JSON invalide).", code="router_bad_response"
             ) from exc
+
+    @staticmethod
+    def _error_detail(exc: HTTPError) -> str:
+        """Extrait le message d'erreur renvoyé par RouterOS.
+
+        Args:
+            exc: Erreur HTTP levée par ``urlopen``.
+
+        Returns:
+            Un suffixe lisible (``" : hotspot non configuré"``), ou une chaîne vide.
+        """
+        try:
+            body = exc.read().decode("utf-8", errors="replace").strip()
+        except Exception:  # noqa: BLE001 - le corps d'erreur ne doit jamais masquer l'erreur
+            return ""
+        if not body:
+            return ""
+        try:
+            parsed = json.loads(body)
+            message = parsed.get("detail") or parsed.get("message") or ""
+        except (ValueError, AttributeError):
+            message = body[:160]
+        return f" : {message}" if message else ""
 
     def _ssl_context(self) -> ssl.SSLContext:
         """Construit le contexte TLS selon ``verify_tls``.
@@ -146,69 +206,3 @@ class RestBackend(BaseBackend):
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
         return context
-
-
-def parse_routeros_uptime(raw: str) -> int:
-    """Convertit une durée RouterOS (``1w2d3h4m5s``) en secondes.
-
-    Args:
-        raw: Chaîne renvoyée par ``/system/resource``.
-
-    Returns:
-        La durée équivalente en secondes (0 si la chaîne est vide).
-
-    Example:
-        >>> parse_routeros_uptime("1w2d3h")
-        788400
-    """
-    units = {"w": 604800, "d": 86400, "h": 3600, "m": 60, "s": 1}
-    total, number = 0, ""
-    for char in raw.strip():
-        if char.isdigit():
-            number += char
-        elif char in units and number:
-            total += int(number) * units[char]
-            number = ""
-    return total
-
-
-def _as_int(value: object) -> int:
-    """Convertit une valeur RouterOS en entier, avec repli à 0.
-
-    Args:
-        value: Valeur brute (souvent une chaîne).
-
-    Returns:
-        L'entier correspondant, ou 0 si non convertible.
-    """
-    try:
-        return int(str(value))
-    except (TypeError, ValueError):
-        return 0
-
-
-def _as_float_or_none(value: object) -> float | None:
-    """Convertit une valeur RouterOS en flottant facultatif.
-
-    Args:
-        value: Valeur brute.
-
-    Returns:
-        Le flottant, ou ``None`` si la valeur est absente ou invalide.
-    """
-    try:
-        return float(str(value))
-    except (TypeError, ValueError):
-        return None
-
-
-def _as_bool(value: object) -> bool:
-    """Interprète les booléens RouterOS (``true``/``false``/``yes``/``no``).
-
-    Args:
-        value: Valeur brute.
-
-    Returns:
-        ``True`` si la valeur exprime l'affirmation.
-    """
-    return str(value).strip().lower() in {"true", "yes", "1"}

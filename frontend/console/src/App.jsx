@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import DevicesPage from './pages/DevicesPage.jsx';
 import DevicePage from './pages/DevicePage.jsx';
+import VouchersPage from './pages/VouchersPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 
 /**
@@ -28,6 +29,7 @@ function Shell() {
         <Route index element={<DashboardPage />} />
         <Route path="devices" element={<DevicesPage />} />
         <Route path="devices/:id" element={<DevicePage />} />
+        <Route path="vouchers" element={<VouchersPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

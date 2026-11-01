@@ -95,6 +95,7 @@ class DeviceCredentialsSerializer(serializers.Serializer):
     port = serializers.IntegerField(required=False, min_value=1, max_value=65535)
     use_tls = serializers.BooleanField(required=False)
     transport = serializers.ChoiceField(choices=DeviceTransport.choices, required=False)
+    simulated = serializers.BooleanField(required=False)
 
 
 class ProbeResultSerializer(serializers.Serializer):

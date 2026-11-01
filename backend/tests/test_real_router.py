@@ -43,7 +43,8 @@ def test_attach_credentials_stores_secrets_encrypted(tenant_context, site, owner
     )
 
     updated = service.attach_credentials(
-        device, username="admin", password="mot-de-passe-routeur", port=80, use_tls=False
+        device, username="admin", password="mot-de-passe-routeur",
+        port=80, use_tls=False, simulated=False,
     )
 
     credential = DeviceCredential.all_objects.get(device=device)
@@ -51,7 +52,7 @@ def test_attach_credentials_stores_secrets_encrypted(tenant_context, site, owner
     assert stored == "mot-de-passe-routeur"
     assert bytes(credential.secret_encrypted) != b"mot-de-passe-routeur"
     assert credential.api_username == "admin"
-    assert updated.is_simulated is False
+    assert updated.is_simulated is False  # demandé explicitement
     assert updated.management_port == 80
     assert updated.use_tls is False
 

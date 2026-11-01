@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from typing import Self
 
-from apps.mikrotik.schemas import InterfaceState, ProbeResult, SystemInfo
+from apps.mikrotik.schemas import HotspotUserState, InterfaceState, ProbeResult, SystemInfo
 from core.exceptions import ExternalServiceError
 
 
@@ -71,6 +71,55 @@ class BaseBackend(ABC):
 
         Raises:
             ExternalServiceError: Si l'appel échoue.
+        """
+
+    @abstractmethod
+    def upsert_hotspot_user(
+        self,
+        *,
+        name: str,
+        password: str,
+        limit_uptime: str = "",
+        limit_bytes_total: int = 0,
+        rate_limit: str = "",
+        comment: str = "",
+    ) -> None:
+        """Crée ou met à jour un utilisateur hotspot.
+
+        L'opération est **idempotente** : rejouer un lot ne crée pas de doublon.
+
+        Args:
+            name: Nom d'utilisateur (= code du voucher).
+            password: Mot de passe associé.
+            limit_uptime: Durée maximale RouterOS (``"1h"``, ``"7d"``).
+            limit_bytes_total: Volume maximal en octets (0 = illimité).
+            rate_limit: Limite de débit RouterOS (``"2M/2M"``).
+            comment: Commentaire libre (identifiant de lot).
+
+        Raises:
+            ExternalServiceError: Si le routeur refuse l'écriture.
+        """
+
+    @abstractmethod
+    def delete_hotspot_user(self, name: str) -> None:
+        """Supprime un utilisateur hotspot.
+
+        Args:
+            name: Nom d'utilisateur à supprimer.
+
+        Raises:
+            ExternalServiceError: Si le routeur refuse la suppression.
+        """
+
+    @abstractmethod
+    def fetch_hotspot_users(self) -> list[HotspotUserState]:
+        """Liste les utilisateurs hotspot et leurs compteurs.
+
+        Returns:
+            Les utilisateurs présents sur le routeur.
+
+        Raises:
+            ExternalServiceError: Si la lecture échoue.
         """
 
     def probe(self, *, with_interfaces: bool = True) -> ProbeResult:

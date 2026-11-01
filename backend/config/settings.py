@@ -89,6 +89,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.network",
     "apps.mikrotik",
+    "apps.hotspot",
 ]
 
 MIDDLEWARE = [

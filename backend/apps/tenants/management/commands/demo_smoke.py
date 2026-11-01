@@ -10,6 +10,9 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
+from apps.hotspot.models import Plan, VoucherBatch
+from apps.hotspot.provisioning import VoucherProvisioner
+from apps.hotspot.services import PlanService, VoucherService
 from apps.network.models import Device
 from apps.network.selectors import DeviceSelector, SiteSelector
 from apps.network.services import DeviceService, SiteService
@@ -78,6 +81,27 @@ class Command(BaseCommand):
             self.stdout.write(
                 f"   ok={result.is_ok} latence={result.latency_ms} ms statut={device.status} "
                 f"version={device.ros_version} cpu={device.health.get('cpu_load_percent')}%"
+            )
+
+            self.stdout.write(self.style.MIGRATE_HEADING("5. Forfait et vouchers"))
+            plan = Plan.objects.filter(code="H1").first() or PlanService(
+                user, actor_role="owner"
+            ).create(name="1 heure", code="H1", duration_minutes=60,
+                     price_fcfa=200, data_cap_mb=50, rate_limit="2M/2M")
+            batch = VoucherBatch.objects.filter(note="démo").first() or VoucherService(
+                user, actor_role="owner"
+            ).generate(site=site, plan=plan, quantity=12, prefix=site.code, note="démo")
+            push = VoucherProvisioner(user, actor_role="owner").push(batch)
+            sync = VoucherProvisioner(user, actor_role="owner").sync(batch)
+            self.stdout.write(
+                f"   forfait : {plan.name} ({plan.price_fcfa} FCFA, {plan.duration_label})"
+            )
+            self.stdout.write(
+                f"   lot     : {batch.prefix}-… · {push.pushed} envoyé(s), {push.failed} échec(s)"
+            )
+            self.stdout.write(
+                f"   suivi   : {sync.checked} lus · {sync.activated} activés "
+                f"· {sync.exhausted} épuisés"
             )
         finally:
             reset_current_tenant(token)

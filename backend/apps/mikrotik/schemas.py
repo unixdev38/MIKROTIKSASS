@@ -88,3 +88,33 @@ class ProbeResult:
     latency_ms: int = 0
     error: str = ""
     checked_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class HotspotUserState:
+    """État d'un utilisateur hotspot lu sur le routeur.
+
+    Attributes:
+        name: Nom d'utilisateur (notre code de voucher).
+        bytes_in: Octets reçus par le client.
+        bytes_out: Octets envoyés au client.
+        uptime_seconds: Durée de la session en cours (0 si déconnecté).
+        is_active: Une session est ouverte.
+        comment: Commentaire RouterOS (identifiant de lot).
+    """
+
+    name: str
+    bytes_in: int = 0
+    bytes_out: int = 0
+    uptime_seconds: int = 0
+    is_active: bool = False
+    comment: str = ""
+
+    @property
+    def total_bytes(self) -> int:
+        """Volume total consommé.
+
+        Returns:
+            La somme des octets entrants et sortants.
+        """
+        return self.bytes_in + self.bytes_out

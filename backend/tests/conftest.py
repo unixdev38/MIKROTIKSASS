@@ -7,11 +7,24 @@ from rest_framework.test import APIClient
 
 from apps.accounts.constants import ROLE_OWNER
 from apps.accounts.models import Membership
-from apps.network.models import Site
+from apps.mikrotik.backends.fake import reset_fake_router_state
+from apps.network.models import Device, Site
 from apps.tenants.models import Tenant
 from core.context import reset_current_tenant, set_current_tenant
 
 User = get_user_model()
+
+
+@pytest.fixture(autouse=True)
+def clean_fake_router():
+    """Isole le routeur simulé entre deux tests.
+
+    Yields:
+        ``None`` : la fixture ne fournit aucune valeur.
+    """
+    reset_fake_router_state()
+    yield
+    reset_fake_router_state()
 
 
 @pytest.fixture
@@ -92,3 +105,25 @@ def api_client(owner, tenant) -> APIClient:
     client.force_login(owner)
     client.credentials(HTTP_X_TENANT_SLUG=tenant.slug)
     return client
+
+
+@pytest.fixture
+def second_workspace(db):
+    """Crée un second espace, son propriétaire, un site et un routeur.
+
+    Args:
+        db: Base de test.
+
+    Returns:
+        Un tuple ``(tenant, site, device)``.
+    """
+    owner = User.objects.create_user(email="fatou@fai.bf", password="motdepasse-solide-456")
+    tenant = Tenant.objects.create(name="FAI Sahel", slug="fai-sahel")
+    token = set_current_tenant(tenant)
+    try:
+        Membership.objects.create(user=owner, role=ROLE_OWNER)
+        site = Site.objects.create(name="Site Sahel", code="FS-01")
+        device = Device.objects.create(site=site, name="hAP · sahel")
+    finally:
+        reset_current_tenant(token)
+    return tenant, site, device

@@ -4,36 +4,11 @@ from __future__ import annotations
 import pytest
 from django.contrib.auth import get_user_model
 
-from apps.accounts.constants import ROLE_OWNER
-from apps.accounts.models import Membership
-from apps.network.models import Device, Site
-from apps.tenants.models import Tenant
+from apps.network.models import Site
 from core.context import get_current_tenant, reset_current_tenant, set_current_tenant
 from core.exceptions import TenantNotSetError
 
 User = get_user_model()
-
-
-@pytest.fixture
-def second_workspace(db):
-    """Crée un second espace, son propriétaire, un site et un routeur.
-
-    Args:
-        db: Base de test.
-
-    Returns:
-        Un tuple ``(tenant, site, device)``.
-    """
-    owner = User.objects.create_user(email="fatou@fai.bf", password="motdepasse-solide-456")
-    tenant = Tenant.objects.create(name="FAI Sahel", slug="fai-sahel")
-    token = set_current_tenant(tenant)
-    try:
-        Membership.objects.create(user=owner, role=ROLE_OWNER)
-        site = Site.objects.create(name="Site Sahel", code="FS-01")
-        device = Device.objects.create(site=site, name="hAP · sahel")
-    finally:
-        reset_current_tenant(token)
-    return tenant, site, device
 
 
 def test_manager_requires_tenant_context():
