@@ -3,10 +3,37 @@
 **SaaS de gestion de parc MikroTik** — hotspot Wi-Fi payant, abonnés PPPoE, caisse, paiements
 mobile money, supervision — construit avec **Django** + **React**.
 
-> **État du projet : conception.** Aucune ligne de code produit n'a encore été écrite.
-> Ce dépôt contient aujourd'hui le **dossier de conception complet** : vision produit, architecture,
-> intégration RouterOS, modèle de données, contrat d'API, frontend, sécurité, infrastructure,
-> feuille de route et décisions d'architecture.
+> **État du projet : socle + vouchers opérationnels, connecteur MikroTik réel.**
+> Le dépôt contient le **dossier de conception complet** (vision, architecture, intégration RouterOS,
+> données, API, frontend, sécurité, infra, roadmap, ADR, maquettes) **et** le début du backend Django :
+> multi-tenant, rôles, parc de routeurs, enrôlement et sonde.
+>
+> ```bash
+> make install && make migrate && make demo   # données de démonstration (routeur simulé)
+> make run                                     # API   → http://localhost:8001
+> make console                                 # UI    → http://localhost:5173
+> make test                                    # 68 tests + 1 test « vrai routeur » optionnel
+> ```
+
+## Ce qui fonctionne déjà
+
+| Fonction | État |
+|---|---|
+| Multi-tenant, rôles, isolation testée | ✅ |
+| Authentification JWT (accès 15 min, refresh 7 j, rotation, révocation) | ✅ |
+| Enregistrement d'un routeur + enrôlement (script RouterOS, secrets chiffrés AES-GCM) | ✅ |
+| **Connexion à un vrai routeur RouterOS 7** (REST, HTTP/HTTPS, port libre) | ✅ |
+| Sonde de connexion + persistance de la santé et des interfaces | ✅ |
+| Workers Celery (sonde à la demande, par tenant) | ✅ |
+| **Console React** (connexion, tableau de bord, routeurs, fiche, vouchers, réglages) | ✅ |
+| **Forfaits + génération de vouchers** (codes anti-ambigu, unicité par espace) | ✅ |
+| **Envoi des vouchers au routeur** (utilisateurs hotspot, idempotent) et export CSV | ✅ |
+| **Synchronisation des quotas** (consommé, activé, épuisé, expiré) | ✅ |
+| API binaire 8729 (RouterOS 6.49) | ⬜ P3 |
+| PDF/QR des coupons, RADIUS, caisse, paiements | ⬜ (P4–P6) |
+
+> Tu as un routeur x86 dans VirtualBox ? Le guide complet est ici :
+> [**docs/15 — Tester avec un routeur x86 dans VirtualBox**](docs/15-routeur-de-test-virtualbox.md).
 
 ---
 
@@ -54,6 +81,10 @@ flowchart LR
 | 10 | [**Checklists**](docs/10-checklists.md) | Ce qu'il faut faire **avant** de coder, décisions ouvertes, durcissement, go-live | 15 min |
 | 11 | [**Glossaire**](docs/11-glossaire.md) | Vocabulaire partagé réseau / RADIUS / produit | 10 min |
 | 12 | [**Design system & maquettes**](docs/12-design-system.md) | Jetons, composants, spécification des 13 écrans, règles d'accessibilité | 15 min |
+| 13 | [**Roadmap A → Z**](docs/13-roadmap-complet.md) | 10 phases, tâches numérotées, portes de sortie, sprints, définition de « ça marche » | 20 min |
+| 14 | [**Conventions de code**](docs/14-conventions-de-code.md) | Couches, tailles maximales, docstrings, héritage, checklist de revue | 12 min |
+| 15 | [**Routeur de test VirtualBox**](docs/15-routeur-de-test-virtualbox.md) | Brancher un RouterOS x86 local : réseau, API REST, CLI, console, dépannage | 12 min |
+| 16 | [**Vouchers hotspot**](docs/16-vouchers-hotspot.md) | Forfaits, génération, envoi au routeur, quotas, export, limites assumées | 14 min |
 
 **Maquettes cliquables** : `design/dist/index.html` — prototype HTML/CSS sans dépendance
 (13 écrans : console, caisse, enrôlement, portail captif, design system).
@@ -80,12 +111,16 @@ puis `docs/10-checklists.md` (les 40 actions concrètes avant la première ligne
 ## Arborescence cible (après la phase de code)
 
 ```
-backend/     API Django, workers Celery, connecteur MikroTik
-frontend/    console React + portail captif + packages partagés
-infra/       docker-compose, Traefik, FreeRADIUS, scripts RouterOS
-design/      maquettes statiques + design system (source → design/dist/)
-docs/        cette documentation
+backend/     API Django, workers Celery, connecteur MikroTik   (présent)
+design/      maquettes statiques + design system                (présent)
+docs/        cette documentation                                (présent)
+frontend/    console React + portail captif                     (à venir, P2/P3)
+infra/       docker-compose, Traefik, FreeRADIUS, scripts .rsc   (à venir, P1/P8)
 ```
+
+Dans `backend/` : `config/` (réglages uniques), `core/` (briques transverses),
+`apps/{tenants,accounts,network,mikrotik,api}/`, `tests/`. Détail et démarrage rapide dans
+[`backend/README.md`](backend/README.md).
 
 Détail dans [`docs/07-infrastructure-devops.md`](docs/07-infrastructure-devops.md) §2.
 
