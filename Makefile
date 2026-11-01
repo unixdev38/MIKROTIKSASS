@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------------------
-# Kora — raccourcis de développement
+# Kora — raccourcis de développement (Linux / macOS / WSL / Git Bash)
+# Windows : utilisez `dev.ps1` (PowerShell) ou `dev.bat` (cmd) — mêmes tâches.
 # ---------------------------------------------------------------------------
 PY := .venv/bin/python
 PIP := .venv/bin/pip

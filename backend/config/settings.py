@@ -14,6 +14,48 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def load_env_file(path: Path) -> int:
+    """Charge un fichier ``.env`` dans les variables d'environnement.
+
+    Le fichier est **facultatif** : le projet doit démarrer sans configuration sur un
+    poste de développement. Les variables déjà définies (shell, Docker, CI) ont priorité
+    et ne sont jamais écrasées.
+
+    Le format accepté est volontairement minimal : ``CLE=valeur``, commentaires avec
+    ``#``, guillemets simples ou doubles optionnels autour de la valeur.
+
+    Args:
+        path: Chemin du fichier à charger.
+
+    Returns:
+        Le nombre de variables effectivement ajoutées (0 si le fichier est absent).
+
+    Example:
+        >>> load_env_file(BASE_DIR.parent / ".env")  # doctest: +SKIP
+        6
+    """
+    if not path.is_file():
+        return 0
+
+    loaded = 0
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+            loaded += 1
+    return loaded
+
+
+# Chargé avant toute lecture de réglage : ``backend/.env`` puis ``.env`` à la racine.
+load_env_file(BASE_DIR / ".env")
+load_env_file(BASE_DIR.parent / ".env")
+
+
 def env(name: str, default: str | None = None) -> str | None:
     """Lit une variable d'environnement.
 

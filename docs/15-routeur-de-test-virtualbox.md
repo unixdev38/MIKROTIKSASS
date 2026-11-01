@@ -106,6 +106,13 @@ python manage.py probe_router --host 192.168.56.101 --username kora --password '
 python manage.py probe_router --host 192.168.56.101 --username kora --password '…' --interfaces
 ```
 
+Sous **Windows**, le script `dev.ps1` fait la même chose (voir
+[`docs/17`](17-environnement-windows.md)) :
+
+```powershell
+.\dev.ps1 probe -RouterHost 192.168.56.101 -RouterUser kora -RouterPassword "UnMotDePasseLong-2026"
+```
+
 Sortie attendue :
 
 ```
@@ -149,11 +156,19 @@ L'API appelée est la même que celle du CLI :
 ## 6. Tests automatisés contre ta VM
 
 ```bash
+# Linux / macOS
 cd backend
-MIKROTIK_LIVE_HOST=192.168.56.101 \
-MIKROTIK_LIVE_USER=kora \
-MIKROTIK_LIVE_PASSWORD='UnMotDePasseLong-2026' \
-pytest -m live -v
+MIKROTIK_LIVE_HOST=192.168.56.101 MIKROTIK_LIVE_USER=kora \
+MIKROTIK_LIVE_PASSWORD='UnMotDePasseLong-2026' pytest -m live -v
+```
+
+```powershell
+# Windows (PowerShell)
+cd backend
+$env:MIKROTIK_LIVE_HOST = "192.168.56.101"
+$env:MIKROTIK_LIVE_USER = "kora"
+$env:MIKROTIK_LIVE_PASSWORD = "UnMotDePasseLong-2026"
+..\.venv\Scripts\python -m pytest -m live -v
 ```
 
 Variantes : `MIKROTIK_LIVE_HTTP=1` (HTTP), `MIKROTIK_LIVE_PORT=8443` (redirection NAT).
