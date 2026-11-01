@@ -53,6 +53,10 @@ flowchart LR
 | 9 | [**Décisions d'architecture (ADR)**](docs/09-adr/) | 6 décisions argumentées (monolithe, REST/binaire, multi-tenant, RADIUS, WireGuard, SPA) | 15 min |
 | 10 | [**Checklists**](docs/10-checklists.md) | Ce qu'il faut faire **avant** de coder, décisions ouvertes, durcissement, go-live | 15 min |
 | 11 | [**Glossaire**](docs/11-glossaire.md) | Vocabulaire partagé réseau / RADIUS / produit | 10 min |
+| 12 | [**Design system & maquettes**](docs/12-design-system.md) | Jetons, composants, spécification des 13 écrans, règles d'accessibilité | 15 min |
+
+**Maquettes cliquables** : `design/dist/index.html` — prototype HTML/CSS sans dépendance
+(13 écrans : console, caisse, enrôlement, portail captif, design system).
 
 **Si vous ne lisez qu'un document** : `docs/00-vision-et-produit.md` (le quoi et le pourquoi),
 puis `docs/10-checklists.md` (les 40 actions concrètes avant la première ligne de code).
@@ -79,12 +83,23 @@ puis `docs/10-checklists.md` (les 40 actions concrètes avant la première ligne
 backend/     API Django, workers Celery, connecteur MikroTik
 frontend/    console React + portail captif + packages partagés
 infra/       docker-compose, Traefik, FreeRADIUS, scripts RouterOS
+design/      maquettes statiques + design system (source → design/dist/)
 docs/        cette documentation
 ```
 
 Détail dans [`docs/07-infrastructure-devops.md`](docs/07-infrastructure-devops.md) §2.
 
 ---
+
+## Voir les maquettes
+
+```bash
+python3 design/build.py                          # régénère design/dist/
+python3 -m http.server 8000 -d design/dist       # puis http://localhost:8000
+```
+
+Point d'entrée : `index.html` (couverture cliquable). Tout est statique, sans CDN ni police distante,
+donc consultable hors ligne et sur une connexion faible.
 
 ## Prochaines étapes immédiates (2 à 4 semaines)
 
@@ -94,7 +109,8 @@ Détail dans [`docs/07-infrastructure-devops.md`](docs/07-infrastructure-devops.
    (voir [`docs/02-integration-mikrotik.md`](docs/02-integration-mikrotik.md) §11).
 3. **Trancher les 10 décisions** listées dans [`docs/10-checklists.md`](docs/10-checklists.md) §2.
 4. **Ouvrir le compte de paiement** (délai de validation 4 à 8 semaines : à lancer tout de suite).
-5. **Maquetter** les 10 écrans clés et les faire tester à un vrai caissier.
+5. **Faire tester les maquettes** à 5 utilisateurs réels (caissier, technicien, gérant, client final)
+   et corriger avant de coder l'interface.
 6. Alors seulement : **Phase 1 — socle** (multi-tenant, auth, parc réseau, enrôlement).
 
 ---
