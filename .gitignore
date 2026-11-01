@@ -31,3 +31,5 @@ build/
 *.log
 .idea/
 .vscode/
+frontend/console/node_modules/
+frontend/console/dist/

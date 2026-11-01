@@ -14,6 +14,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from core.api.mixins import TenantContextMixin
 from core.api.permissions import BaseTenantPermission
 
 
@@ -29,7 +30,7 @@ def health(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"status": "ok", "time": timezone.now().isoformat()})
 
 
-class BaseModelViewSet(ModelViewSet):
+class BaseModelViewSet(TenantContextMixin, ModelViewSet):
     """ViewSet tenant-scopé, sans logique métier.
 
     Les sous-classes déclarent ``selector`` (lecture) et ``service_class`` (écriture).
@@ -43,7 +44,9 @@ class BaseModelViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated, BaseTenantPermission]
     selector: type | None = None
     service_class: type | None = None
-    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+    # Les écritures passent par des actions explicites : pas de PATCH/DELETE tant
+    # qu'aucun service de mise à jour n'existe (l'API renvoie alors 405, sans mentir).
+    http_method_names = ["get", "post", "head", "options"]
 
     def get_queryset(self) -> Any:
         """Retourne le queryset du tenant courant via le sélecteur déclaré.
@@ -57,6 +60,26 @@ class BaseModelViewSet(ModelViewSet):
         if self.selector is None:  # pragma: no cover - erreur de programmation
             raise NotImplementedError("Déclarez `selector` sur le ViewSet.")
         return self.selector.list()
+
+    def get_object(self) -> Any:
+        """Retourne l'objet ciblé via le sélecteur déclaré.
+
+        Le sélecteur applique le filtrage par tenant et renvoie une erreur 404 homogène
+        (``site_not_found``, ``device_not_found``) au lieu d'une erreur technique.
+
+        Returns:
+            L'objet demandé.
+
+        Raises:
+            NotImplementedError: Si ``selector`` n'est pas déclaré.
+            NotFoundError: Si l'objet n'existe pas dans cet espace.
+        """
+        if self.selector is None:  # pragma: no cover - erreur de programmation
+            raise NotImplementedError("Déclarez `selector` sur le ViewSet.")
+        lookup = self.lookup_url_kwarg or self.lookup_field
+        obj = self.selector.get(str(self.kwargs[lookup]))
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     def response_ok(self, data: Any, *, status: int = 200) -> Response:
         """Construit une réponse JSON standard.

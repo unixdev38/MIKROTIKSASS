@@ -8,14 +8,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 
 from apps.mikrotik.schemas import ProbeResult
 from apps.mikrotik.services import MikroTikService
 from apps.network.enrollment import EnrollmentService
-from apps.network.models import Device, DeviceStatus, DeviceTransport, Site
+from apps.network.models import Device, DeviceCredential, DeviceStatus, DeviceTransport, Site
 from apps.network.schemas import DeviceSnapshot, EnrollmentBundle
 from apps.network.snapshots import build_snapshot
+from core.crypto import SecretCipher
 from core.exceptions import ConflictError, DomainValidationError
 from core.services import BaseService
 
@@ -86,6 +89,8 @@ class DeviceService(BaseService[Device]):
         serial: str = "",
         model_name: str = "",
         management_ip: str | None = None,
+        management_port: int = 443,
+        use_tls: bool = True,
         transport: str = DeviceTransport.REST,
         is_simulated: bool = False,
     ) -> Device:
@@ -99,7 +104,9 @@ class DeviceService(BaseService[Device]):
             name: Libellé interne du routeur.
             serial: Numéro de série, si déjà connu.
             model_name: Modèle matériel.
-            management_ip: Adresse prévue dans le tunnel.
+            management_ip: Adresse prévue dans le tunnel (ou IP d'un routeur de test).
+            management_port: Port du service REST (443, 80, 8080…).
+            use_tls: ``True`` pour HTTPS, ``False`` pour HTTP.
             transport: ``rest`` ou ``binary``.
             is_simulated: Marque un routeur de démonstration (aucun appel réseau).
 
@@ -121,6 +128,10 @@ class DeviceService(BaseService[Device]):
         clean_name = (name or "").strip()
         if not clean_name:
             raise DomainValidationError("Le nom du routeur est obligatoire.", code="device_name_required")
+        if not 1 <= int(management_port) <= 65535:
+            raise DomainValidationError(
+                "Port de management invalide (1 à 65535).", code="device_port_invalid"
+            )
         if transport not in DeviceTransport.values:
             raise DomainValidationError(
                 f"Transport inconnu : « {transport} ».", code="device_transport_invalid"
@@ -134,6 +145,8 @@ class DeviceService(BaseService[Device]):
             serial=serial.strip(),
             model_name=model_name.strip(),
             management_ip=management_ip,
+            management_port=management_port,
+            use_tls=use_tls,
             transport=transport,
             status=DeviceStatus.PENDING,
             is_simulated=is_simulated,
@@ -154,6 +167,70 @@ class DeviceService(BaseService[Device]):
             ConflictError: Si le routeur est déjà enrôlé et ``force`` est faux.
         """
         return EnrollmentService(self.actor, actor_role=self.actor_role).issue(device, force=force)
+
+    def attach_credentials(
+        self,
+        device: Device,
+        *,
+        username: str,
+        password: str,
+        port: int | None = None,
+        use_tls: bool | None = None,
+        transport: str = DeviceTransport.REST,
+    ) -> Device:
+        """Renseigne les identifiants réels d'un routeur déjà déployé.
+
+        Utile pour un routeur qui existe déjà (par exemple un CHR x86 dans une machine
+        virtuelle) : on ne génère pas de secrets, on range ceux de l'administrateur,
+        chiffrés. Le routeur est alors utilisé en réel (``is_simulated`` passe à faux).
+
+        Args:
+            device: Routeur à configurer.
+            username: Utilisateur RouterOS disposant de ``rest-api`` (ou ``api``).
+            password: Mot de passe de cet utilisateur (chiffré avant écriture).
+            port: Port du service (``None`` conserve la valeur du routeur).
+            use_tls: ``True`` pour HTTPS, ``False`` pour HTTP (``None`` : inchangé).
+            transport: ``rest`` (routeur 7.x) ou ``binary`` (repli).
+
+        Returns:
+            Le routeur mis à jour.
+
+        Raises:
+            PermissionDeniedError: Si l'acteur n'a pas le rôle technicien.
+            DomainValidationError: Si l'utilisateur, le mot de passe ou l'IP est absent.
+        """
+        self.assert_role(self.actor_role, "technician")
+
+        clean_user = (username or "").strip()
+        if not clean_user or not password:
+            raise DomainValidationError(
+                "Renseignez l'utilisateur et le mot de passe du routeur.",
+                code="credentials_incomplete",
+            )
+        if not device.management_ip:
+            raise DomainValidationError(
+                "Renseignez d'abord l'adresse IP du routeur.", code="device_management_ip_required"
+            )
+
+        cipher = SecretCipher.from_settings()
+        with transaction.atomic():
+            record = getattr(device, "credential", None) or DeviceCredential(device=device)
+            record.api_username = clean_user
+            record.secret_encrypted = cipher.encrypt(password)
+            record.key_version = settings.SECRET_KEY_VERSION
+            record.rotated_at = timezone.now()
+            record.save()
+
+            device.is_simulated = False
+            device.transport = transport
+            if port is not None:
+                device.management_port = port
+            if use_tls is not None:
+                device.use_tls = use_tls
+            device.save(
+                update_fields=["is_simulated", "transport", "management_port", "use_tls", "updated_at"]
+            )
+        return device
 
     def probe(self, device: Device, *, with_interfaces: bool = True) -> ProbeResult:
         """Contacte le routeur et persiste l'état observé.

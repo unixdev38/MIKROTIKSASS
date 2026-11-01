@@ -45,7 +45,8 @@ class DeviceSerializer(serializers.ModelSerializer):
         model = Device
         fields = (
             "id", "name", "site", "serial", "model_name", "ros_version",
-            "management_ip", "transport", "status", "health", "last_seen_at",
+            "management_ip", "management_port", "use_tls", "transport", "status",
+            "health", "last_seen_at",
             "enrollment_expires_at", "is_simulated", "is_enrolled", "created_at",
         )
         read_only_fields = fields
@@ -74,10 +75,26 @@ class DeviceCreateSerializer(serializers.Serializer):
     serial = serializers.CharField(max_length=60, required=False, allow_blank=True, default="")
     model_name = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
     management_ip = serializers.IPAddressField(required=False, allow_null=True, default=None)
+    management_port = serializers.IntegerField(required=False, min_value=1, max_value=65535, default=443)
+    use_tls = serializers.BooleanField(required=False, default=True)
     transport = serializers.ChoiceField(
         choices=DeviceTransport.choices, required=False, default=DeviceTransport.REST
     )
     is_simulated = serializers.BooleanField(required=False, default=False)
+
+
+class DeviceCredentialsSerializer(serializers.Serializer):
+    """Identifiants réels d'un routeur déjà déployé (connexion directe).
+
+    Le mot de passe n'est accepté qu'en écriture : il est chiffré avant d'atteindre la
+    base et n'est jamais renvoyé par l'API.
+    """
+
+    username = serializers.CharField(max_length=60)
+    password = serializers.CharField(max_length=120, write_only=True, trim_whitespace=False)
+    port = serializers.IntegerField(required=False, min_value=1, max_value=65535)
+    use_tls = serializers.BooleanField(required=False)
+    transport = serializers.ChoiceField(choices=DeviceTransport.choices, required=False)
 
 
 class ProbeResultSerializer(serializers.Serializer):

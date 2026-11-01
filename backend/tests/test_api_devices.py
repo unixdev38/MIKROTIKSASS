@@ -71,6 +71,33 @@ def test_create_device_with_foreign_site_is_not_found(api_client):
     assert response.json()["code"] == "site_not_found"
 
 
+def test_retrieve_device_returns_detail(api_client, site):
+    """``GET /devices/{id}/`` renvoie le détail (utilisé par la fiche de la console)."""
+    created = api_client.post(
+        "/api/v1/devices/",
+        {"site_id": str(site.pk), "name": "hAP", "management_ip": "192.168.56.101",
+         "management_port": 80, "use_tls": False},
+        format="json",
+    ).json()
+
+    response = api_client.get(f"/api/v1/devices/{created['id']}/")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["management_port"] == 80
+    assert body["use_tls"] is False
+
+
+def test_update_is_not_exposed(api_client, site):
+    """Aucune écriture générique : ``PATCH`` renvoie 405, faute de service dédié."""
+    created = api_client.post(
+        "/api/v1/devices/", {"site_id": str(site.pk), "name": "hAP"}, format="json"
+    ).json()
+
+    assert api_client.patch(f"/api/v1/devices/{created['id']}/", {"name": "x"}, format="json").status_code == 405
+    assert api_client.delete(f"/api/v1/devices/{created['id']}/").status_code == 405
+
+
 def test_me_endpoint_exposes_active_workspace(api_client, tenant):
     """``/me`` renvoie l'espace actif et le rôle de l'utilisateur."""
     response = api_client.get("/api/v1/me/")

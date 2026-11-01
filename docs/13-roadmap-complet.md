@@ -5,9 +5,11 @@
 > projet **fonctionne réellement** en production — puis ce qu'il reste à faire ensuite.
 >
 > Vocabulaire : `P` = phase, `T` = tâche numérotée, `✅` = fait, `⬜` = à faire.
-> **Avancement au 2026-11-01** : P0 partiel, **P2 socle amorcé et P3 démarré** — voir §P2 et §P3.
-> Le premier parcours fonctionne de bout en bout (`make demo`) : espace → site → routeur →
-> enrôlement (script + secrets chiffrés) → sonde → statut « en ligne ».
+> **Avancement au 2026-11-01** : P2 socle **livré**, P3 connecteur **en cours**.
+> Fonctionne de bout en bout : espace → site → routeur → enrôlement (script + secrets chiffrés)
+> → sonde → statut « en ligne » ; **authentification JWT** ; **console React** branchée sur
+> l'API ; **connexion à un routeur RouterOS réel** (API REST, HTTP/HTTPS, port libre).
+> Prochaine marche : provisioning réel des vouchers (P4).
 > Chaque phase se termine par une **porte de sortie** (critères mesurables). On ne passe pas à la
 > suivante sans l'avoir franchie.
 
@@ -91,9 +93,9 @@ Sinon → revoir le vertical (voir `00-vision-et-produit.md`).
 | T21 | `core` : modèles abstraits, `TenantContext`, exceptions, `BaseService` | Héritage prêt à l'emploi | ✅ |
 | T22 | `tenants` : Tenant, création, essai 14 jours | Service + tests | ✅ |
 | T23 | `accounts` : User custom, Membership, rôles | Service + tests | ✅ (modèles, rôles, sélecteurs) |
-| T24 | Auth JWT (access 15 min, refresh 7 j, rotation) | Endpoints + tests | ⬜ (session Django en attendant) |
-| T25 | Permissions par rôle + middleware tenant | Test d'isolation sur chaque endpoint | ◐ (middleware + tests ; rôles contrôlés par les services) |
-| T26 | Console React : layout, login, garde de route | `frontend/apps/console` | ⬜ (maquettes prêtes) |
+| T24 | Auth JWT (access 15 min, refresh 7 j, rotation) | Endpoints + tests | ✅ |
+| T25 | Permissions par rôle + middleware tenant | Test d'isolation sur chaque endpoint | ✅ (middleware + mixin JWT + 8 tests d'isolation) |
+| T26 | Console React : layout, login, garde de route | `frontend/apps/console` | ✅ (`frontend/console`, 4 écrans) |
 | T27 | CI/CD (lint, tests, migrations, build) | `.github/workflows` | ⬜ |
 | T28 | Staging + sauvegardes + supervision | `infra/` | ⬜ |
 
@@ -111,7 +113,7 @@ d'un autre (liste + détail + action). CI verte et bloquante.
 | T30 | `network` : Site, Device, DeviceCredential chiffré, statut | Modèles + index | ✅ |
 | T31 | `mikrotik.schemas` : objets normalisés (`SystemInfo`, `DeviceHealth`) | Indépendants du backend | ✅ |
 | T32 | `BaseBackend` + `FakeBackend` | Tests sans matériel | ✅ |
-| T33 | `RestBackend` (httpx) | Timeouts, `!trap`, TLS | ◐ (lecture via urllib stdlib, écritures à venir) |
+| T33 | `RestBackend` (httpx) | Timeouts, `!trap`, TLS | ◐ (lecture complète, HTTP/HTTPS, port libre ; écritures en P4) |
 | T34 | `BinaryBackend` (librouteros) | 8729, `.proplist`, reconnexion | ⬜ |
 | T35 | `MikroTikService` : test de connexion, santé, synchronisation | 1 responsabilité par méthode | ✅ (sonde + santé) |
 | T36 | Enrôlement : génération du script + secret à usage unique + WireGuard | Idempotent, 15 min max | ⬜ |

@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -62,8 +63,11 @@ def env_list(name: str, default: str = "") -> list[str]:
 
 # --------------------------------------------------------------------- sécurité
 DEBUG = env_bool("DJANGO_DEBUG", True)
-SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me")
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
+SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me-please-use-32-bytes-plus")
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver,[::1]")
+if DEBUG:
+    # Le proxy du bac à sable sert l'application sous un domaine dynamique.
+    ALLOWED_HOSTS = ["*"] if env("DJANGO_ALLOWED_HOSTS") is None else ALLOWED_HOSTS
 
 # Clé de chiffrement des secrets de management (AES-256-GCM).
 # En développement seulement, une clé est dérivée de SECRET_KEY pour éviter toute
@@ -80,6 +84,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "apps.tenants",
     "apps.accounts",
     "apps.network",
@@ -138,6 +143,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
@@ -146,6 +152,21 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "core.api.pagination.StandardPagination",
     "PAGE_SIZE": 50,
     "EXCEPTION_HANDLER": "core.api.exceptions.api_exception_handler",
+}
+
+# JWT : jeton d'accès court, refresh long avec rotation et liste de révocation.
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(env("JWT_ACCESS_MINUTES", "15") or "15")),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(env("JWT_REFRESH_DAYS", "7") or "7")),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "TOKEN_OBTAIN_SERIALIZER": "apps.api.auth.TenantTokenObtainPairSerializer",
 }
 
 # --------------------------------------------------------------------- international
@@ -171,6 +192,8 @@ MIKROTIK_TIMEOUT_SECONDS = int(env("MIKROTIK_TIMEOUT_SECONDS", "10") or "10")
 MIKROTIK_WIREGUARD_ENDPOINT = env("MIKROTIK_WIREGUARD_ENDPOINT", "vpn.kora.bf")
 MIKROTIK_MANAGEMENT_NETWORK = env("MIKROTIK_MANAGEMENT_NETWORK", "10.66.0.0/24")
 MIKROTIK_FAKE_MODE = env_bool("MIKROTIK_FAKE_MODE", True)
+# Les routeurs arrivent avec un certificat auto-signé : la vérification est opt-in.
+MIKROTIK_VERIFY_TLS = env_bool("MIKROTIK_VERIFY_TLS", False)
 
 LOGGING = {
     "version": 1,

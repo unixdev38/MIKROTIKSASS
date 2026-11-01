@@ -56,7 +56,10 @@ def build_backend(device: object, *, fail_with: str | None = None) -> BaseBacken
             host=host,
             username=credential.api_username,
             secret=secret,
+            port=getattr(device, "management_port", None) or None,
+            use_tls=bool(getattr(device, "use_tls", True)),
             timeout=settings.MIKROTIK_TIMEOUT_SECONDS,
+            verify_tls=settings.MIKROTIK_VERIFY_TLS,
         )
 
     raise DomainValidationError(

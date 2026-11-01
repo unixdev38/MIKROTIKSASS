@@ -6,11 +6,12 @@ aucune logique dans les vues, tout passe par un service.
 ## Démarrage
 
 ```bash
-make install     # venv + dépendances
+make install     # venv + dépendances (Django, DRF, JWT, Celery) + console
 make migrate     # schéma SQLite (ou Postgres via .env)
-make demo        # parcours complet : tenant → site → routeur → enrôlement → sonde
-make test        # suite de tests
-make run         # http://localhost:8001
+make demo        # jeu de démonstration : tenant → site → routeur → enrôlement → sonde
+make test        # suite de tests (42 + 1 test routeur réel optionnel)
+make run         # API   → http://localhost:8001
+make console     # UI    → http://localhost:5173
 ```
 
 ## Organisation
@@ -23,7 +24,7 @@ apps/tenants/      espaces de travail
 apps/accounts/     utilisateurs, appartenances, rôles
 apps/network/      sites, routeurs, identifiants, enrôlement, sondes, workers
 apps/mikrotik/     connecteur RouterOS : schémas, backends (fake/rest/binaire), service
-apps/api/          sérialiseurs et vues HTTP (fines)
+apps/api/          sérialiseurs, vues HTTP (fines), authentification JWT
 tests/             tests d'isolation, d'enrôlement, de connecteur, d'API
 ```
 
@@ -35,6 +36,32 @@ vue (10-20 lignes) → serializer (forme) → service (métier + transaction) �
                                             ↘ backend MikroTik (I/O)
 ```
 
+## Authentification
+
+| Méthode | Endpoint | Corps |
+|---|---|---|
+| `POST` | `/api/v1/auth/token/` | `{"email", "password"}` → `access`, `refresh`, `tenant`, `role`, `tenants` |
+| `POST` | `/api/v1/auth/refresh/` | `{"refresh"}` → nouveaux jetons (rotation) |
+| `POST` | `/api/v1/auth/logout/` | `{"refresh"}` + `Authorization: Bearer …` → révocation |
+
+Le jeton ne porte aucun droit : l'espace (`X-Tenant-Slug`) et le rôle sont vérifiés à
+chaque requête. Durées : accès 15 min, refresh 7 jours (`JWT_ACCESS_MINUTES`, `JWT_REFRESH_DAYS`).
+
+## Routeur réel (VM VirtualBox, CHR, hAP)
+
+```bash
+# Test direct, sans base de données
+python manage.py probe_router --host 192.168.56.101 --username kora --password '…'
+python manage.py probe_router --host 192.168.56.101 --username kora --password '…' --http --port 80
+
+# Tests automatisés contre ce routeur
+MIKROTIK_LIVE_HOST=192.168.56.101 MIKROTIK_LIVE_USER=kora \
+MIKROTIK_LIVE_PASSWORD='…' pytest -m live
+```
+
+Guide détaillé (réseau VirtualBox, configuration RouterOS, dépannage) :
+[`docs/15-routeur-de-test-virtualbox.md`](../docs/15-routeur-de-test-virtualbox.md).
+
 ## Ce qui fonctionne aujourd'hui
 
 | Fonction | État |
@@ -44,7 +71,9 @@ vue (10-20 lignes) → serializer (forme) → service (métier + transaction) �
 | Enrôlement : secrets chiffrés + script RouterOS | ✅ |
 | Sonde de connexion (backend factice) | ✅ |
 | Workers de sonde (Celery) | ✅ |
-| Backend REST réel | ⬜ P3 |
+| Authentification JWT (rotation + révocation) | ✅ |
+| Routeur RouterOS 7 réel (REST, HTTP/HTTPS, port libre) | ✅ |
+| Console React branchée sur l'API | ✅ |
 | Backend binaire (8729) | ⬜ P3 |
 | Vouchers, RADIUS, paiements | ⬜ P4–P6 |
 

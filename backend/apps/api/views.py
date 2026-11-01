@@ -9,11 +9,12 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.views import APIView  # noqa: F401 - type des vues publiques
 
 from apps.accounts.selectors import MembershipSelector
 from apps.api.serializers import (
     DeviceCreateSerializer,
+    DeviceCredentialsSerializer,
     DeviceSerializer,
     MeSerializer,
     SiteCreateSerializer,
@@ -21,6 +22,7 @@ from apps.api.serializers import (
 )
 from apps.network.selectors import DeviceSelector, SiteSelector
 from apps.network.services import DeviceService, SiteService
+from core.api.mixins import TenantAPIView
 from core.api.views import BaseModelViewSet
 
 
@@ -150,6 +152,26 @@ class DeviceViewSet(_TenantScopedMixin, BaseModelViewSet):
             }
         )
 
+    @action(detail=True, methods=["post"], url_path="credentials")
+    def credentials(self, request: Request, pk: str | None = None) -> Response:
+        """Renseigne les identifiants réels d'un routeur déjà en service.
+
+        Args:
+            request: Requête contenant ``username``, ``password`` et, en option,
+                ``port``, ``use_tls`` et ``transport``.
+            pk: Identifiant du routeur.
+
+        Returns:
+            Le routeur mis à jour (aucun secret dans la réponse).
+        """
+        payload = DeviceCredentialsSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        device = DeviceSelector.get(str(pk))
+        updated = DeviceService(
+            self.actor_of(request), actor_role=self.role_of(request)
+        ).attach_credentials(device, **payload.validated_data)
+        return Response(DeviceSerializer(updated).data)
+
     @action(detail=True, methods=["post"], url_path="enroll")
     def enroll(self, request: Request, pk: str | None = None) -> Response:
         """Génère le script d'enrôlement à usage unique d'un routeur.
@@ -177,7 +199,7 @@ class DeviceViewSet(_TenantScopedMixin, BaseModelViewSet):
         )
 
 
-class MeView(_TenantScopedMixin, APIView):
+class MeView(_TenantScopedMixin, TenantAPIView):
     """Profil de l'utilisateur connecté et espaces accessibles."""
 
     permission_classes = [IsAuthenticated]

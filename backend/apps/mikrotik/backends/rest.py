@@ -22,24 +22,35 @@ class RestBackend(BaseBackend):
     """Backend HTTP/JSON sur ``https://<routeur>/rest``.
 
     Args:
-        host: Adresse de management.
+        host: Adresse de management (IP du tunnel, ou IP locale d'un routeur de test).
         username: Utilisateur API.
         secret: Mot de passe de l'utilisateur API.
-        port: Port HTTPS du routeur (443 par défaut).
+        port: Port du service ``www``/``www-ssl`` (443 par défaut, 80 si TLS désactivé).
+        use_tls: ``True`` pour ``https``, ``False`` pour ``http`` (routeur de test).
         timeout: Délai par requête, en secondes.
-        verify_tls: Vérifie le certificat (les routeurs utilisent souvent un
-            certificat auto-signé épinglé, donc ``False`` par défaut).
+        verify_tls: Vérifie le certificat (les routeurs utilisent un certificat
+            auto-signé : ``False`` par défaut).
     """
+
+    @property
+    def scheme(self) -> str:
+        """Schéma d'URL correspondant au réglage TLS.
+
+        Returns:
+            ``"https"`` ou ``"http"``.
+        """
+        return "https" if self.use_tls else "http"
 
     @property
     def base_url(self) -> str:
         """URL de base de l'API REST.
 
         Returns:
-            ``https://<host>:<port>`` sans slash final.
+            ``<schéma>://<host>:<port>`` sans slash final, par exemple
+            ``https://10.66.1.14:443``.
         """
-        port = self.port or 443
-        return f"https://{self.host}:{port}"
+        port = self.port or (443 if self.use_tls else 80)
+        return f"{self.scheme}://{self.host}:{port}"
 
     def fetch_system_info(self) -> SystemInfo:
         """Interroge ``/rest/system/identity`` et ``/rest/system/resource``.
@@ -108,7 +119,8 @@ class RestBackend(BaseBackend):
             method="GET",
         )
         try:
-            with urlopen(request, timeout=self.timeout, context=self._ssl_context()) as response:
+            context = self._ssl_context() if self.use_tls else None
+            with urlopen(request, timeout=self.timeout, context=context) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:
             raise ExternalServiceError(

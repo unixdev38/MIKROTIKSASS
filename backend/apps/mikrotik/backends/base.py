@@ -22,6 +22,7 @@ class BaseBackend(ABC):
         username: Utilisateur API dédié au routeur.
         secret: Mot de passe de cet utilisateur.
         port: Port du service (8729 pour l'API binaire, 443 pour REST).
+        use_tls: Chiffre le transport (HTTPS ou API binaire TLS).
         timeout: Délai maximal d'une requête, en secondes.
         verify_tls: Vérifie le certificat du routeur (souvent auto-signé en production).
     """
@@ -33,6 +34,7 @@ class BaseBackend(ABC):
         username: str,
         secret: str,
         port: int | None = None,
+        use_tls: bool = True,
         timeout: int = 10,
         verify_tls: bool = False,
     ) -> None:
@@ -40,6 +42,7 @@ class BaseBackend(ABC):
         self.username = username
         self.secret = secret
         self.port = port
+        self.use_tls = use_tls
         self.timeout = timeout
         self.verify_tls = verify_tls
 

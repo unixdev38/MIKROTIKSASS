@@ -65,7 +65,9 @@ class Device(TenantScopedModel):
         serial: Numéro de série relevé sur le matériel.
         model_name: Modèle (``hAP ac2``).
         ros_version: Version de RouterOS au dernier contact.
-        management_ip: Adresse dans le tunnel WireGuard.
+        management_ip: Adresse dans le tunnel WireGuard (ou IP du routeur en test local).
+        management_port: Port du service REST (443, 80, ou 8080 pour un routeur de test).
+        use_tls: Utilise HTTPS pour joindre le routeur.
         transport: Transport de management effectivement utilisé.
         status: État de supervision.
         health: Dernier état de santé normalisé (dict sérialisable).
@@ -80,6 +82,8 @@ class Device(TenantScopedModel):
     model_name = models.CharField("modèle", max_length=80, blank=True)
     ros_version = models.CharField("version RouterOS", max_length=20, blank=True)
     management_ip = models.GenericIPAddressField("IP de management", null=True, blank=True)
+    management_port = models.PositiveIntegerField("port de management", default=443)
+    use_tls = models.BooleanField("HTTPS", default=True)
     transport = models.CharField(
         "transport", max_length=10, choices=DeviceTransport.choices, default=DeviceTransport.REST
     )
@@ -118,7 +122,8 @@ class DeviceCredential(TenantScopedModel):
         api_username: Utilisateur API dédié créé sur le routeur.
         secret_encrypted: Mot de passe chiffré (AES-256-GCM, nonce préfixé).
         key_version: Version de la clé de chiffrement utilisée.
-        wireguard_private_key_encrypted: Clé privée WireGuard chiffrée.
+        wireguard_private_key_encrypted: Clé privée WireGuard chiffrée, vide pour un
+            routeur connecté avec des identifiants fournis manuellement.
         wireguard_public_key: Clé publique correspondante (non secrète).
         heartbeat_token_encrypted: Jeton du heartbeat sortant, chiffré.
         rotated_at: Date de la dernière rotation des identifiants.
@@ -128,9 +133,13 @@ class DeviceCredential(TenantScopedModel):
     api_username = models.CharField("utilisateur API", max_length=60, default="saas-api")
     secret_encrypted = models.BinaryField("mot de passe chiffré")
     key_version = models.PositiveSmallIntegerField("version de clé", default=1)
-    wireguard_private_key_encrypted = models.BinaryField("clé privée WireGuard chiffrée")
+    wireguard_private_key_encrypted = models.BinaryField(
+        "clé privée WireGuard chiffrée", null=True, blank=True
+    )
     wireguard_public_key = models.CharField("clé publique WireGuard", max_length=64, blank=True)
-    heartbeat_token_encrypted = models.BinaryField("jeton heartbeat chiffré")
+    heartbeat_token_encrypted = models.BinaryField(
+        "jeton heartbeat chiffré", null=True, blank=True
+    )
     rotated_at = models.DateTimeField("dernière rotation", null=True, blank=True)
 
     class Meta:

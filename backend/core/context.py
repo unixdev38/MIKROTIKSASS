@@ -14,6 +14,9 @@ if TYPE_CHECKING:  # pragma: no cover - uniquement pour les types
 
 _current_tenant: ContextVar[Tenant | None] = ContextVar("current_tenant", default=None)
 
+#: Type du jeton de restauration renvoyé par :func:`set_current_tenant`.
+ContextToken = Token[object]
+
 
 def set_current_tenant(tenant: Tenant | None) -> Token[Tenant | None]:
     """Définit le tenant courant et renvoie le jeton de restauration.

@@ -54,18 +54,21 @@ class Command(BaseCommand):
             ).register(name="Cyber Centre-ville", code="CC-01", city="Ouagadougou")
             self.stdout.write(f"   site    : {site}")
 
-            device = DeviceSelector.list()[0] if DeviceSelector.list() else DeviceService(
-                user, actor_role="owner"
-            ).register(
+            device = next(
+                (item for item in DeviceSelector.list() if item.is_simulated), None
+            ) or DeviceService(user, actor_role="owner").register(
                 site=site, name="hAP-ac2 · cyber-centre",
                 management_ip="10.66.1.14", is_simulated=True,
             )
             self.stdout.write(f"   routeur : {device} ({device.status})")
 
             self.stdout.write(self.style.MIGRATE_HEADING("3. Enrôlement"))
-            force = device.enrollment_expires_at is not None and not getattr(device, "credential", None)
-            bundle = DeviceService(user, actor_role="owner").issue_enrollment(device, force=force)
-            self.stdout.write(f"   script  : {len(bundle.script)} caractères, expire le {bundle.expires_at:%d/%m %H:%M}")
+            device.refresh_from_db()
+            bundle = DeviceService(user, actor_role="owner").issue_enrollment(
+                device, force=bool(getattr(device, "credential", None))
+            )
+            expires = f"{bundle.expires_at:%d/%m %H:%M}"
+            self.stdout.write(f"   script  : {len(bundle.script)} caractères, expire le {expires}")
             self.stdout.write(f"   extrait : {bundle.script.splitlines()[0]}")
 
             self.stdout.write(self.style.MIGRATE_HEADING("4. Sonde"))
