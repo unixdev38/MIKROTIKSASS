@@ -1,0 +1,33 @@
+# --- Maquettes : sortie générée par design/build.py (voir design/README.md)
+design/dist/
+
+# --- Python / Django
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# --- Node / React
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# --- Divers
+.DS_Store
+*.log
+.idea/
+.vscode/

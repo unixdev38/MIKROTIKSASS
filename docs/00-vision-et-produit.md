@@ -209,6 +209,13 @@ connexion faible, support WhatsApp, prix mensuel sans engagement, et migration g
 
 ## 10. Décisions à prendre avant de coder
 
+> **Mise à jour du 2026-11-01** — décisions prises avec le porteur du projet :
+> - vertical retenu : **A (hotspot) + C (supervision)** ; le FAI/PPPoE (B) passe en V2 ;
+> - cible : **tout RouterOS 7** (REST + API binaire en repli dès le départ), 6.49 hors périmètre ;
+> - application mobile : **PWA d'abord**, React Native seulement si besoin terrain confirmé.
+>
+> Restent ouvertes : hébergement, agrégateur de paiement, marque blanche au MVP, SLA.
+
 1. Le vertical : **A seul**, ou **A + C** dès le départ (recommandé) ?
 2. Support minimal de RouterOS : 7.x uniquement, ou 6.49 également ? (impacte la couche d'abstraction)
 3. Cloud : VPS local (Ouaga/Abidjan) ou Europe (OVH/Hetzner) ? Impacte la latence et la confiance client.

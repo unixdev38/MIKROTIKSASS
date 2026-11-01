@@ -54,12 +54,12 @@
 
 | # | Sujet | Options | Décision | Date |
 |---|---|---|---|---|
-| D1 | Vertical de départ | Hotspot / FAI / Fleet / Unifié | ⬜ à décider | |
-| D2 | Version RouterOS minimale | 7.11+ / 7.1+ / 6.49 inclus | ⬜ | |
+| D1 | Vertical de départ | Hotspot / FAI / Fleet / Unifié | ✅ **Hotspot + supervision** (FAI en V2) | 2026-11-01 |
+| D2 | Version RouterOS minimale | 7.11+ / 7.1+ / 6.49 inclus | ✅ **Tout RouterOS 7** (backend binaire en repli dès le départ ; 6.49 hors périmètre) | 2026-11-01 |
 | D3 | Hébergement | VPS EU / VPS régional / hybride | ⬜ | |
 | D4 | Agrégateur de paiement | CinetPay / PayDunya / KkiaPay / direct | ⬜ | |
-| D5 | Marque blanche au MVP | oui / non | ⬜ | |
-| D6 | Application mobile | PWA / React Native / plus tard | ⬜ | |
+| D5 | Marque blanche au MVP | oui / non | ⬜ (portail personnalisable prévu, domaine client en V1.1) | |
+| D6 | Application mobile | PWA / React Native / plus tard | ✅ **PWA d'abord**, React Native si besoin terrain | 2026-11-01 |
 | D7 | TLS routeur | certificat auto-signé épinglé / CA interne | ⬜ | |
 | D8 | Langue | FR seul / FR+EN dès le départ | ⬜ | |
 | D9 | Facturation SaaS | mobile money / virement / carte | ⬜ | |
