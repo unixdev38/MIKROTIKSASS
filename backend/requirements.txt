@@ -1,0 +1,15 @@
+# ---------------------------------------------------------------------------
+# Kora — dépendances d'exécution (backend Django)
+# Versions vérifiées le 2026-11-01 · Python 3.11+ · Windows, Linux, macOS
+#
+#   pip install -r backend/requirements.txt
+#
+# Le fichier de référence (contraintes larges, publication du paquet) reste
+# backend/pyproject.toml ; ce fichier fige les versions qui ont été testées.
+# ---------------------------------------------------------------------------
+Django==5.2.18
+djangorestframework==3.18.3
+djangorestframework-simplejwt==5.5.1
+celery==5.6.3
+redis==8.1.0
+cryptography==50.0.2

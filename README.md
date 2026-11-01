@@ -14,7 +14,7 @@ mobile money, supervision — construit avec **Django** + **React**.
 > .\dev.ps1 install && .\dev.ps1 migrate && .\dev.ps1 demo
 > .\dev.ps1 run        # API → http://localhost:8001
 > .\dev.ps1 console    # UI  → http://localhost:5173
-> .\dev.ps1 test       # 71 tests + 1 test « vrai routeur » optionnel
+> .\dev.ps1 test       # 79 tests + 1 test « vrai routeur » optionnel
 > ```
 >
 > **Linux / macOS / WSL / Git Bash** :
@@ -25,6 +25,14 @@ mobile money, supervision — construit avec **Django** + **React**.
 > ```
 >
 > Guide complet Windows : [**docs/17 — Environnement Windows**](docs/17-environnement-windows.md).
+>
+> **Dépendances figées** : `backend/requirements.txt` (exécution) et
+> `backend/requirements-dev.txt` (tests + lint). Installation minimale, sans `pip install -e` :
+>
+> ```powershell
+> python -m venv .venv
+> .\.venv\Scripts\pip install -r backend\requirements-dev.txt
+> ```
 
 ## Ce qui fonctionne déjà
 

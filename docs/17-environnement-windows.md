@@ -60,10 +60,13 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ## 3. Commandes équivalentes (sans script)
 
 ```powershell
-# Environnement
+# Environnement (dépendances figées, reproductibles)
 python -m venv .venv
-.\.venv\Scripts\pip install -e "backend[dev]"
+.\.venv\Scripts\pip install -r backend\requirements-dev.txt
 cd frontend\console; npm install; cd ..\..
+
+# Variante « paquet éditable » (équivalente)
+# .\.venv\Scripts\pip install -e "backend[dev]"
 
 # Base de données et démonstration
 cd backend
@@ -153,6 +156,7 @@ Puis dans la console : **Routeurs → Ajouter** (`192.168.56.101`, port 443, HTT
 | Symptôme | Cause | Solution |
 |---|---|---|
 | `python : terme non reconnu` | Python absent du PATH | réinstaller en cochant *Add to PATH*, ou utiliser `py -3` |
+| `ModuleNotFoundError: rest_framework_simplejwt` | installation incomplète (ancien `pip install -e`) | `.\.venv\Scripts\pip install -r backend\requirements-dev.txt` |
 | `Impossible de charger … dev.ps1` | politique d'exécution | voir §2 |
 | `npm : terme non reconnu` | Node.js absent | installer Node 18+, **rouvrir** le terminal |
 | `make : commande introuvable` | normal sous Windows | utiliser `dev.ps1` / `dev.bat` |

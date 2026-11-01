@@ -93,9 +93,13 @@ switch ($Task) {
             Write-Step '1/3 · Création de l''environnement virtuel (.venv)'
             python -m venv (Join-Path $Root '.venv')
         }
-        Write-Step '2/3 · Dépendances Python'
+        Write-Step '2/3 · Dépendances Python (versions figées)'
         & $VenvPip install --upgrade pip
-        & $VenvPip install -e "$Root\backend[dev]"
+        if (Test-Path (Join-Path $Root 'backend\requirements-dev.txt')) {
+            & $VenvPip install -r (Join-Path $Root 'backend\requirements-dev.txt')
+        } else {
+            & $VenvPip install -e "$Root\backend[dev]"
+        }
         Write-Step '3/3 · Dépendances de la console'
         if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
             Write-Warning 'npm introuvable : installez Node.js 18+ puis relancez .\dev.ps1 install'
