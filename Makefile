@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------------------
+# Kora — raccourcis de développement
+# ---------------------------------------------------------------------------
+PY := .venv/bin/python
+PIP := .venv/bin/pip
+
+.PHONY: help venv install migrate test lint demo run maquettes clean
+
+help:
+	@echo "make install     Crée le venv et installe les dépendances"
+	@echo "make migrate     Applique les migrations"
+	@echo "make test        Lance la suite de tests"
+	@echo "make lint        Ruff + compilation Python"
+	@echo "make demo        Parcours complet de démonstration (routeur simulé)"
+	@echo "make run         Serveur de développement sur 0.0.0.0:8001"
+	@echo "make maquettes   Régénère et sert les maquettes sur :8000"
+
+venv:
+	python3 -m venv .venv
+	$(PIP) install --upgrade pip
+
+install: venv
+	$(PIP) install -e "backend[dev]"
+
+migrate:
+	cd backend && ../$(PY) manage.py makemigrations --check --dry-run || true
+	cd backend && ../$(PY) manage.py migrate --noinput
+
+test:
+	cd backend && ../$(PY) -m pytest
+
+lint:
+	cd backend && ../$(PY) -m ruff check .
+	cd backend && ../$(PY) -m compileall -q apps core config
+
+demo:
+	cd backend && ../$(PY) manage.py demo_smoke
+
+run:
+	cd backend && ../$(PY) manage.py runserver 0.0.0.0:8001
+
+maquettes:
+	$(PY) design/build.py
+	$(PY) -m http.server 8000 --bind 0.0.0.0 -d design/dist
+
+clean:
+	find . -name __pycache__ -type d -prune -exec rm -rf {} +
+	rm -f backend/db.sqlite3
